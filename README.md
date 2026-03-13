@@ -119,4 +119,4 @@ MIT
 
 ---
 
-Built by [nino](https://github.com/nino)
+Built by [nino](https://github.com/ninodinoo)
