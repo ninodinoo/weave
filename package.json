@@ -1,6 +1,6 @@
 {
   "name": "weave-ai",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Your AI workflow, woven to perfection. A framework that lives inside your AI coding tool, learns how you work, and builds the perfect workflow — automatically.",
   "type": "module",
   "bin": {

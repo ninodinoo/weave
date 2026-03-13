@@ -4,6 +4,7 @@ import pc from "picocolors";
 import { existsSync, mkdirSync, cpSync, readdirSync, writeFileSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { createInterface } from "readline";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,46 +22,64 @@ const BANNER = `
 `;
 
 interface Platform {
+  id: string;
   name: string;
   configDir: string;
-  commandsDir: string;
-  agentsDir?: string;
-  hooksDir?: string;
+  support: "full" | "rules-only";
   detected: boolean;
 }
 
 function detectPlatforms(projectDir: string): Platform[] {
   return [
     {
+      id: "claude-code",
       name: "Claude Code",
       configDir: ".claude",
-      commandsDir: ".claude/commands",
-      agentsDir: ".claude/agents",
-      hooksDir: ".claude/hooks",
+      support: "full",
       detected: existsSync(join(projectDir, ".claude")),
     },
     {
+      id: "claw",
+      name: "Claw (Claude Desktop)",
+      configDir: ".claude",
+      support: "full",
+      detected: false, // Claw uses same .claude/ dir — can't auto-detect separately
+    },
+    {
+      id: "cursor",
       name: "Cursor",
       configDir: ".cursor",
-      commandsDir: ".cursor/commands",
+      support: "rules-only",
       detected: existsSync(join(projectDir, ".cursor")),
     },
     {
+      id: "codex",
       name: "Codex",
       configDir: ".codex",
-      commandsDir: ".codex",
+      support: "rules-only",
       detected: existsSync(join(projectDir, ".codex")),
     },
     {
+      id: "windsurf",
       name: "Windsurf",
       configDir: ".windsurf",
-      commandsDir: ".windsurf",
+      support: "rules-only",
       detected: existsSync(join(projectDir, ".windsurf")),
     },
   ];
 }
 
-function copyDir(src: string, dest: string, prefix: string, skipExisting = false): number {
+function ask(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+function copyDir(src: string, dest: string, prefix: string): number {
   if (!existsSync(src)) return 0;
   try {
     mkdirSync(dest, { recursive: true });
@@ -73,11 +92,8 @@ function copyDir(src: string, dest: string, prefix: string, skipExisting = false
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.isDirectory() ? entry.name : `${prefix}${entry.name}`);
     if (entry.isDirectory()) {
-      count += copyDir(srcPath, destPath, prefix, skipExisting);
+      count += copyDir(srcPath, destPath, prefix);
     } else {
-      if (skipExisting && existsSync(destPath)) {
-        continue; // don't overwrite existing files
-      }
       try {
         cpSync(srcPath, destPath);
         count++;
@@ -89,12 +105,11 @@ function copyDir(src: string, dest: string, prefix: string, skipExisting = false
   return count;
 }
 
-function installForClaudeCode(projectDir: string): void {
+function installFull(projectDir: string): void {
   const claudeDir = join(projectDir, ".claude");
   mkdirSync(join(claudeDir, "commands"), { recursive: true });
   mkdirSync(join(claudeDir, "agents"), { recursive: true });
 
-  // Commands → .claude/commands/weave:*.md
   const cmdCount = copyDir(
     join(packageRoot, "commands"),
     join(claudeDir, "commands"),
@@ -102,7 +117,6 @@ function installForClaudeCode(projectDir: string): void {
   );
   console.log(`  ${pc.green("✓")} ${cmdCount} commands installed`);
 
-  // Agents → .claude/agents/
   const agentCount = copyDir(
     join(packageRoot, "agents"),
     join(claudeDir, "agents"),
@@ -110,7 +124,6 @@ function installForClaudeCode(projectDir: string): void {
   );
   console.log(`  ${pc.green("✓")} ${agentCount} agents installed`);
 
-  // Master-Instructions → .claude/commands/weave-instructions/
   const instrCount = copyDir(
     join(packageRoot, "master-instructions"),
     join(claudeDir, "commands", "weave-instructions"),
@@ -118,7 +131,6 @@ function installForClaudeCode(projectDir: string): void {
   );
   console.log(`  ${pc.green("✓")} ${instrCount} master-instructions installed`);
 
-  // Hooks → .claude/hooks/
   const hookCount = copyDir(
     join(packageRoot, "hooks"),
     join(claudeDir, "hooks"),
@@ -127,14 +139,44 @@ function installForClaudeCode(projectDir: string): void {
   console.log(`  ${pc.green("✓")} ${hookCount} hooks installed`);
 }
 
-function installWeaveState(projectDir: string): void {
+function installRulesOnly(projectDir: string, platform: Platform): void {
+  // Create .weave/ state + a placeholder rules file for the platform
+  const rulesMap: Record<string, string> = {
+    cursor: ".cursorrules",
+    codex: "codex.md",
+    windsurf: ".windsurfrules",
+  };
+
+  const rulesFile = rulesMap[platform.id];
+  if (rulesFile) {
+    const rulesPath = join(projectDir, rulesFile);
+    if (!existsSync(rulesPath)) {
+      try {
+        writeFileSync(
+          rulesPath,
+          `<!-- Generated by Weave 🧶 — Run /weave:onboarding to populate -->\n`
+        );
+        console.log(`  ${pc.green("✓")} ${rulesFile} created`);
+      } catch (err: any) {
+        console.error(`  ${pc.red("✗")} Failed to create ${rulesFile}: ${err.message}`);
+      }
+    } else {
+      console.log(`  ${pc.dim("—")} ${rulesFile} already exists, skipped`);
+    }
+  }
+
+  console.log(`  ${pc.dim("ℹ")} ${platform.name} supports rules only — agents, commands & hooks require Claude Code or Claw`);
+}
+
+function installWeaveState(projectDir: string, selectedPlatforms: Platform[]): void {
   const weaveDir = join(projectDir, ".weave");
   const dirs = ["agents", "skills", "teams", "rules", "history"];
   for (const dir of dirs) {
     mkdirSync(join(weaveDir, dir), { recursive: true });
   }
 
-  // Create initial config.json if it doesn't exist
+  const platformIds = selectedPlatforms.map((p) => p.id);
+
   const configPath = join(weaveDir, "config.json");
   if (!existsSync(configPath)) {
     const initialConfig = {
@@ -159,7 +201,7 @@ function installWeaveState(projectDir: string): void {
         team: [],
         milestones: [],
       },
-      platforms: ["claude-code"],
+      platforms: platformIds,
       generatedAt: "",
       lastEvolved: "",
     };
@@ -170,13 +212,12 @@ function installWeaveState(projectDir: string): void {
     }
   }
 
-  // Create initial platforms.json if it doesn't exist
   const platformsPath = join(weaveDir, "platforms.json");
   if (!existsSync(platformsPath)) {
     try {
       writeFileSync(
         platformsPath,
-        JSON.stringify({ active: ["claude-code"], lastSync: "" }, null, 2)
+        JSON.stringify({ active: platformIds, lastSync: "" }, null, 2)
       );
     } catch (err: any) {
       console.error(`  ${pc.red("✗")} Failed to create platforms.json: ${err.message}`);
@@ -186,7 +227,7 @@ function installWeaveState(projectDir: string): void {
   console.log(`  ${pc.green("✓")} .weave/ state directory created`);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   console.log(BANNER);
 
   const projectDir = process.cwd();
@@ -197,42 +238,84 @@ function main(): void {
   const platforms = detectPlatforms(projectDir);
   const detected = platforms.filter((p) => p.detected);
 
-  if (detected.length === 0) {
-    // Default to Claude Code if nothing detected
-    console.log(`  ${pc.yellow("?")} No AI tool detected, defaulting to Claude Code`);
-    mkdirSync(join(projectDir, ".claude"), { recursive: true });
-    detected.push(platforms[0]!);
+  // Show detection results
+  if (detected.length > 0) {
+    console.log(`  ${pc.bold("Detected AI tools:")}`);
+    for (const p of detected) {
+      const support = p.support === "full" ? pc.green("full support") : pc.yellow("rules only");
+      console.log(`    ${pc.green("✓")} ${pc.bold(p.name)} (${support})`);
+    }
+  } else {
+    console.log(`  ${pc.yellow("!")} No AI tools detected in this directory.`);
   }
 
-  for (const platform of detected) {
-    console.log(`  ${pc.green("✓")} Detected: ${pc.bold(platform.name)}`);
+  console.log();
+  console.log(`  ${pc.bold("Available platforms:")}`);
+  platforms.forEach((p, i) => {
+    const marker = p.detected ? pc.green("●") : pc.dim("○");
+    const support = p.support === "full" ? pc.green("full") : pc.yellow("rules");
+    console.log(`    ${marker} ${pc.bold(`${i + 1}`)} ${p.name} [${support}]`);
+  });
+
+  console.log();
+  const answer = await ask(
+    `  ${pc.bold("Install for which platforms?")} (comma-separated numbers, e.g. 1,3): `
+  );
+
+  // Parse selection
+  const selected: Platform[] = [];
+  const nums = answer.split(",").map((s) => parseInt(s.trim(), 10));
+  for (const num of nums) {
+    if (num >= 1 && num <= platforms.length) {
+      selected.push(platforms[num - 1]!);
+    }
   }
 
+  if (selected.length === 0) {
+    console.log(`\n  ${pc.red("✗")} No valid platform selected. Aborting.`);
+    process.exit(1);
+  }
+
+  console.log();
   console.log(pc.dim("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
   console.log();
 
-  // Install for each detected platform
-  for (const platform of detected) {
+  // Install for each selected platform
+  const hasFullPlatform = selected.some((p) => p.support === "full");
+
+  for (const platform of selected) {
     console.log(`  ${pc.bold("Installing for " + platform.name + "...")}`);
 
-    // Claude Code gets full installation (commands, agents, hooks)
-    // Other platforms get Claude Code install as base + their own rules format later via /weave:sync
-    installForClaudeCode(projectDir);
-
-    if (platform.name !== "Claude Code") {
-      console.log(`  ${pc.dim("  (Claude Code format used as base — run /weave:sync for " + platform.name + " native format)")}`);
+    if (platform.support === "full") {
+      installFull(projectDir);
+    } else {
+      installRulesOnly(projectDir, platform);
     }
 
     console.log();
   }
 
+  // If only rules-only platforms selected, inform about limitations
+  if (!hasFullPlatform) {
+    console.log(
+      `  ${pc.yellow("ℹ")} For the full Weave experience (agents, teams, commands, hooks),`
+    );
+    console.log(`    also install for ${pc.bold("Claude Code")} or ${pc.bold("Claw")}.`);
+    console.log();
+  }
+
   // Create .weave/ state directory
-  installWeaveState(projectDir);
+  installWeaveState(projectDir, selected);
 
   console.log();
   console.log(pc.dim("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
   console.log();
-  console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} to get started.`);
+
+  if (hasFullPlatform) {
+    console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} to get started.`);
+  } else {
+    console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} in Claude Code or Claw to get started.`);
+  }
   console.log();
 }
 
