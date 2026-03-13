@@ -26,7 +26,7 @@ You translate Weave's universal workflow format into platform-specific configura
 - `.weave/platforms.json` — which platforms are active
 
 ### 2. Read the adapter docs
-Check `weave-instructions/` or the adapter files for each platform to understand:
+Check `.claude/commands/weave-instructions/` or the adapter files for each platform to understand:
 - Where files go
 - What format they need
 - What features are supported

@@ -21,7 +21,7 @@ You design agent teams and workflow structures for projects. You understand how 
    - Read `.weave/config.json` for project and user info
    - Read existing agents in `.claude/agents/` and `.weave/agents/`
    - Read existing teams in `.weave/teams/`
-   - Read the master-instructions in `weave-instructions/teams.md` and `weave-instructions/subagents.md`
+   - Read the master-instructions in `.claude/commands/weave-instructions/teams.md` and `.claude/commands/weave-instructions/subagents.md`
 
 2. **Design the team**
    - Choose the right agents for the task
@@ -32,7 +32,7 @@ You design agent teams and workflow structures for projects. You understand how 
 
 3. **Create missing agents**
    - If the team needs agents that don't exist, create them
-   - Follow `weave-instructions/agents.md` for quality
+   - Follow `.claude/commands/weave-instructions/agents.md` for quality
 
 4. **Output**
    - Team definition in `.weave/teams/`

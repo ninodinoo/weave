@@ -215,10 +215,13 @@ function main(): void {
   for (const platform of detected) {
     console.log(`  ${pc.bold("Installing for " + platform.name + "...")}`);
 
-    if (platform.name === "Claude Code") {
-      installForClaudeCode(projectDir);
+    // Claude Code gets full installation (commands, agents, hooks)
+    // Other platforms get Claude Code install as base + their own rules format later via /weave:sync
+    installForClaudeCode(projectDir);
+
+    if (platform.name !== "Claude Code") {
+      console.log(`  ${pc.dim("  (Claude Code format used as base — run /weave:sync for " + platform.name + " native format)")}`);
     }
-    // TODO: Other platform installers
 
     console.log();
   }
