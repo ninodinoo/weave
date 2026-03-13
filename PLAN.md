@@ -258,10 +258,14 @@ Jeder Adapter ist ein Markdown-File das beschreibt:
 - [x] Sync-Agent
 
 ### Schritt 6 — Polish & Release
-- [ ] README mit GIFs/Screenshots
-- [ ] npm publish
-- [ ] GitHub Release
-- [ ] Git Repo initialisieren
+- [x] README
+- [x] LICENSE (MIT)
+- [x] .gitignore
+- [x] Git Repo initialisiert
+- [x] GitHub Repo erstellt: https://github.com/ninodinoo/weave
+- [ ] npm publish (`npm publish` wenn ready)
+- [ ] GitHub Release mit Tag
+- [ ] GIFs/Screenshots im README (nach erstem echten Test)
 
 ---
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import pc from "picocolors";
-import { existsSync, mkdirSync, cpSync, readdirSync } from "fs";
+import { existsSync, mkdirSync, cpSync, readdirSync, writeFileSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -60,18 +60,30 @@ function detectPlatforms(projectDir: string): Platform[] {
   ];
 }
 
-function copyDir(src: string, dest: string, prefix: string): number {
+function copyDir(src: string, dest: string, prefix: string, skipExisting = false): number {
   if (!existsSync(src)) return 0;
-  mkdirSync(dest, { recursive: true });
+  try {
+    mkdirSync(dest, { recursive: true });
+  } catch (err: any) {
+    console.error(`  ${pc.red("✗")} Failed to create directory ${dest}: ${err.message}`);
+    return 0;
+  }
   let count = 0;
   for (const entry of readdirSync(src, { withFileTypes: true })) {
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.isDirectory() ? entry.name : `${prefix}${entry.name}`);
     if (entry.isDirectory()) {
-      count += copyDir(srcPath, destPath, prefix);
+      count += copyDir(srcPath, destPath, prefix, skipExisting);
     } else {
-      cpSync(srcPath, destPath);
-      count++;
+      if (skipExisting && existsSync(destPath)) {
+        continue; // don't overwrite existing files
+      }
+      try {
+        cpSync(srcPath, destPath);
+        count++;
+      } catch (err: any) {
+        console.error(`  ${pc.red("✗")} Failed to copy ${entry.name}: ${err.message}`);
+      }
     }
   }
   return count;
@@ -98,13 +110,21 @@ function installForClaudeCode(projectDir: string): void {
   );
   console.log(`  ${pc.green("✓")} ${agentCount} agents installed`);
 
-  // Master-Instructions → .claude/commands/ (als Referenz für Commands)
+  // Master-Instructions → .claude/commands/weave-instructions/
   const instrCount = copyDir(
     join(packageRoot, "master-instructions"),
     join(claudeDir, "commands", "weave-instructions"),
     ""
   );
   console.log(`  ${pc.green("✓")} ${instrCount} master-instructions installed`);
+
+  // Hooks → .claude/hooks/
+  const hookCount = copyDir(
+    join(packageRoot, "hooks"),
+    join(claudeDir, "hooks"),
+    ""
+  );
+  console.log(`  ${pc.green("✓")} ${hookCount} hooks installed`);
 }
 
 function installWeaveState(projectDir: string): void {
@@ -113,6 +133,56 @@ function installWeaveState(projectDir: string): void {
   for (const dir of dirs) {
     mkdirSync(join(weaveDir, dir), { recursive: true });
   }
+
+  // Create initial config.json if it doesn't exist
+  const configPath = join(weaveDir, "config.json");
+  if (!existsSync(configPath)) {
+    const initialConfig = {
+      version: "1.0",
+      user: {
+        role: "",
+        experience: "",
+        stack: [],
+        preferences: {
+          language: "",
+          responseStyle: "balanced",
+          planFirst: true,
+        },
+      },
+      project: {
+        name: "",
+        description: "",
+        vision: "",
+        type: "",
+        stack: [],
+        features: [],
+        team: [],
+        milestones: [],
+      },
+      platforms: ["claude-code"],
+      generatedAt: "",
+      lastEvolved: "",
+    };
+    try {
+      writeFileSync(configPath, JSON.stringify(initialConfig, null, 2));
+    } catch (err: any) {
+      console.error(`  ${pc.red("✗")} Failed to create config.json: ${err.message}`);
+    }
+  }
+
+  // Create initial platforms.json if it doesn't exist
+  const platformsPath = join(weaveDir, "platforms.json");
+  if (!existsSync(platformsPath)) {
+    try {
+      writeFileSync(
+        platformsPath,
+        JSON.stringify({ active: ["claude-code"], lastSync: "" }, null, 2)
+      );
+    } catch (err: any) {
+      console.error(`  ${pc.red("✗")} Failed to create platforms.json: ${err.message}`);
+    }
+  }
+
   console.log(`  ${pc.green("✓")} .weave/ state directory created`);
 }
 

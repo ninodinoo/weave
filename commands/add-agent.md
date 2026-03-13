@@ -1,3 +1,8 @@
+---
+name: add-agent
+description: Add a new agent to the Weave workflow
+---
+
 # Weave: Add Agent
 
 Help the user create a new agent for their workflow.

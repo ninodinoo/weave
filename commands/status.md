@@ -1,4 +1,11 @@
+---
+name: status
+description: Show the current Weave setup status
+---
+
 # Weave Status
+
+**First**: Check if `.weave/config.json` exists and has a non-empty `generatedAt` field. If not, tell the user: "Weave hasn't been set up yet. Run `/weave:onboarding` first." and stop.
 
 Show the current Weave setup status. Read and display:
 

@@ -1,3 +1,8 @@
+---
+name: add-skill
+description: Create a new custom skill for the Weave workflow
+---
+
 # Weave: Add Skill
 
 Help the user create a new skill (slash command) for their workflow.

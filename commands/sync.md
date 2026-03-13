@@ -1,6 +1,13 @@
+---
+name: sync
+description: Sync Weave workflow across all detected AI platforms
+---
+
 # Weave Sync
 
 Sync the Weave workflow across all detected AI platforms.
+
+**First**: Check if `.weave/config.json` exists and has a non-empty `generatedAt` field. If not, tell the user: "Weave hasn't been set up yet. Run `/weave:onboarding` first." and stop.
 
 ## What to do
 

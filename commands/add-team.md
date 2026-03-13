@@ -1,3 +1,8 @@
+---
+name: add-team
+description: Define a new agent team for the Weave workflow
+---
+
 # Weave: Add Team
 
 Help the user create a new agent team.
