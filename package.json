@@ -1,0 +1,43 @@
+{
+  "name": "weave-ai",
+  "version": "0.1.0",
+  "description": "Your AI workflow, woven to perfection. A framework that lives inside your AI coding tool, learns how you work, and builds the perfect workflow — automatically.",
+  "type": "module",
+  "bin": {
+    "weave": "./dist/install.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "ai",
+    "workflow",
+    "claude-code",
+    "cursor",
+    "codex",
+    "agents",
+    "developer-tools"
+  ],
+  "author": "nino",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.0"
+  },
+  "files": [
+    "dist",
+    "commands",
+    "master-instructions",
+    "hooks",
+    "agents",
+    "adapters",
+    "core"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
