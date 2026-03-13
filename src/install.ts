@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import pc from "picocolors";
-import { existsSync, mkdirSync, cpSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, cpSync, readdirSync, writeFileSync, readFileSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { createInterface } from "readline";
@@ -25,7 +25,7 @@ interface Platform {
   id: string;
   name: string;
   configDir: string;
-  support: "full" | "rules-only";
+  support: "full" | "skills" | "rules-only";
   detected: boolean;
 }
 
@@ -39,11 +39,11 @@ function detectPlatforms(projectDir: string): Platform[] {
       detected: existsSync(join(projectDir, ".claude")),
     },
     {
-      id: "claw",
-      name: "Claw (Claude Desktop)",
-      configDir: ".claude",
-      support: "full",
-      detected: false, // Claw uses same .claude/ dir — can't auto-detect separately
+      id: "openclaw",
+      name: "OpenClaw",
+      configDir: "skills",
+      support: "skills",
+      detected: existsSync(join(projectDir, "skills")) || existsSync(join(projectDir, ".openclaw")),
     },
     {
       id: "cursor",
@@ -139,8 +139,75 @@ function installFull(projectDir: string): void {
   console.log(`  ${pc.green("✓")} ${hookCount} hooks installed`);
 }
 
+function installForOpenClaw(projectDir: string): void {
+  const skillDir = join(projectDir, "skills", "weave");
+  mkdirSync(skillDir, { recursive: true });
+
+  // Main SKILL.md — combines master instructions + agent definitions
+  const skillMdParts: string[] = [
+    "---",
+    "name: weave",
+    "description: AI workflow framework — personalized agents, teams, and rules",
+    "version: 1.0.0",
+    "---",
+    "",
+    "# Weave — AI Workflow Framework",
+    "",
+    "You have access to the Weave workflow system. Weave personalizes your AI workflow",
+    "based on who you are, what you're building, and how you work.",
+    "",
+    "## Available Commands",
+    "- `weave:onboarding` — Start the onboarding conversation",
+    "- `weave:evolve` — Optimize your workflow",
+    "- `weave:status` — Show current setup",
+    "- `weave:add-agent` — Add a new agent",
+    "- `weave:add-skill` — Create a new skill",
+    "- `weave:add-team` — Define a new agent team",
+    "",
+    "## State",
+    "Weave stores its state in `.weave/` in the project root.",
+    "Read `.weave/config.json` for user and project context.",
+    "",
+  ];
+
+  // Read and append master instructions
+  const instrDir = join(packageRoot, "master-instructions");
+  if (existsSync(instrDir)) {
+    for (const file of readdirSync(instrDir)) {
+      if (file.endsWith(".md")) {
+        const content = readFileSync(join(instrDir, file), "utf-8");
+        skillMdParts.push(content);
+        skillMdParts.push("");
+      }
+    }
+  }
+
+  try {
+    writeFileSync(join(skillDir, "SKILL.md"), skillMdParts.join("\n"));
+    console.log(`  ${pc.green("✓")} skills/weave/SKILL.md created`);
+  } catch (err: any) {
+    console.error(`  ${pc.red("✗")} Failed to create SKILL.md: ${err.message}`);
+  }
+
+  // Create sub-skills for each command
+  const subSkillsDir = join(skillDir, "sub-skills");
+  const commandsDir = join(packageRoot, "commands");
+  if (existsSync(commandsDir)) {
+    let count = 0;
+    for (const file of readdirSync(commandsDir)) {
+      if (file.endsWith(".md")) {
+        const name = file.replace(".md", "");
+        const subDir = join(subSkillsDir, name);
+        mkdirSync(subDir, { recursive: true });
+        cpSync(join(commandsDir, file), join(subDir, "SKILL.md"));
+        count++;
+      }
+    }
+    console.log(`  ${pc.green("✓")} ${count} sub-skills created`);
+  }
+}
+
 function installRulesOnly(projectDir: string, platform: Platform): void {
-  // Create .weave/ state + a placeholder rules file for the platform
   const rulesMap: Record<string, string> = {
     cursor: ".cursorrules",
     codex: "codex.md",
@@ -165,7 +232,7 @@ function installRulesOnly(projectDir: string, platform: Platform): void {
     }
   }
 
-  console.log(`  ${pc.dim("ℹ")} ${platform.name} supports rules only — agents, commands & hooks require Claude Code or Claw`);
+  console.log(`  ${pc.dim("ℹ")} ${platform.name} supports rules only — agents, commands & hooks require Claude Code or OpenClaw`);
 }
 
 function installWeaveState(projectDir: string, selectedPlatforms: Platform[]): void {
@@ -242,7 +309,8 @@ async function main(): Promise<void> {
   if (detected.length > 0) {
     console.log(`  ${pc.bold("Detected AI tools:")}`);
     for (const p of detected) {
-      const support = p.support === "full" ? pc.green("full support") : pc.yellow("rules only");
+      const supportLabel = p.support === "full" ? "full support" : p.support === "skills" ? "skills" : "rules only";
+      const support = p.support === "rules-only" ? pc.yellow(supportLabel) : pc.green(supportLabel);
       console.log(`    ${pc.green("✓")} ${pc.bold(p.name)} (${support})`);
     }
   } else {
@@ -253,7 +321,8 @@ async function main(): Promise<void> {
   console.log(`  ${pc.bold("Available platforms:")}`);
   platforms.forEach((p, i) => {
     const marker = p.detected ? pc.green("●") : pc.dim("○");
-    const support = p.support === "full" ? pc.green("full") : pc.yellow("rules");
+    const supportTag = p.support === "full" ? "full" : p.support === "skills" ? "skills" : "rules";
+    const support = p.support === "rules-only" ? pc.yellow(supportTag) : pc.green(supportTag);
     console.log(`    ${marker} ${pc.bold(`${i + 1}`)} ${p.name} [${support}]`);
   });
 
@@ -281,13 +350,15 @@ async function main(): Promise<void> {
   console.log();
 
   // Install for each selected platform
-  const hasFullPlatform = selected.some((p) => p.support === "full");
+  const hasFullPlatform = selected.some((p) => p.support === "full" || p.id === "openclaw");
 
   for (const platform of selected) {
     console.log(`  ${pc.bold("Installing for " + platform.name + "...")}`);
 
     if (platform.support === "full") {
       installFull(projectDir);
+    } else if (platform.id === "openclaw") {
+      installForOpenClaw(projectDir);
     } else {
       installRulesOnly(projectDir, platform);
     }
@@ -314,7 +385,7 @@ async function main(): Promise<void> {
   if (hasFullPlatform) {
     console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} to get started.`);
   } else {
-    console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} in Claude Code or Claw to get started.`);
+    console.log(`  ${pc.green(pc.bold("Done!"))} Run ${pc.bold("/weave:onboarding")} in Claude Code or OpenClaw to get started.`);
   }
   console.log();
 }
