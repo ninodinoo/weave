@@ -3,28 +3,78 @@
 ## Directory Structure
 ```
 project/
-├── codex.md               # Project instructions
-└── .codex/
-    └── config.json        # Codex settings
+├── AGENTS.md                  # Project instructions (like CLAUDE.md)
+├── .codex/
+│   ├── hooks.json             # Lifecycle hooks
+│   └── hooks/                 # Hook scripts
+│       ├── weave-evolve-hook.js
+│       └── weave-context-guard.js
+├── .agents/
+│   └── skills/                # Skill definitions
+│       ├── weave-onboarding/
+│       │   └── SKILL.md
+│       ├── weave-evolve/
+│       │   └── SKILL.md
+│       └── weave-instructions/
+│           └── references/    # Master-instruction files
+└── src/
+    └── AGENTS.md              # Directory-level instructions (optional)
 ```
 
-## Rules
-- Location: `codex.md` in project root
+## AGENTS.md
+- Location: Project root (cascades through directories)
 - Format: Markdown
-- Loaded as system instructions
+- Discovery: `AGENTS.override.md` > `AGENTS.md` > fallback files
+- Hierarchical: Global (`~/.codex/`) → repo root → subdirectories
+- Limit: 32 KiB combined (configurable)
+
+## Skills
+- Location: `.agents/skills/*/SKILL.md`
+- Format: Markdown with YAML frontmatter (name, description)
+- Activation: Explicit via `$skill-name` or implicit by description matching
+- Scan order: CWD → parent dirs → repo root → `$HOME/.agents/skills/` → `/etc/codex/skills/`
+
+```yaml
+---
+name: weave-onboarding
+description: Start the Weave onboarding conversation
+---
+
+[Skill instructions in Markdown]
+```
+
+## Hooks
+- Config: `.codex/hooks.json`
+- Events: `SessionStart`, `Stop`
+- Format: JSON with hook arrays per event
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .codex/hooks/weave-evolve-hook.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ## Supported Features
-- ✓ Rules (codex.md)
-- ✗ Named Agents
-- ✗ Hooks
-- ✗ Slash Commands
-- ✗ MCP Servers
+- ✓ Instructions (AGENTS.md, cascading)
+- ✓ Skills (.agents/skills/*/SKILL.md)
+- ✓ Hooks (.codex/hooks.json)
+- ✓ MCP Servers (via config.toml)
+- ✓ Multi-agent (via config.toml agents section)
 
 ## Translation from Weave Universal Format
-- Weave Rule → Append to `codex.md`
-- Weave Agent → Embed as workflow descriptions in `codex.md`
-- Weave Skill → Embed as task templates in `codex.md`
-- Weave Team → Describe as workflow patterns in `codex.md`
-
-## Limitations
-Codex is the most limited platform. Everything gets flattened into the single codex.md rules file. Agent teams and skills become descriptive workflow instructions rather than executable commands.
+- Weave Agent + Rules → `AGENTS.md`
+- Weave Skill → `.agents/skills/weave-<name>/SKILL.md`
+- Weave Hook → `.codex/hooks.json` + `.codex/hooks/`
+- Weave Team → Described as workflow in `AGENTS.md`

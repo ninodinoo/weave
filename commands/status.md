@@ -13,20 +13,20 @@ Show the current Weave setup status. Read and display:
 
 1. **Weave Config** — Read `.weave/config.json` and show a summary of user profile and project info
 
-2. **Installed Agents** — List all agents in `.claude/agents/` (or equivalent) with their role/purpose
+2. **Installed Agents** — List all agents in `.weave/agents/` with their role/purpose
 
 3. **Agent Teams** — List all teams in `.weave/teams/` with composition and purpose
 
-4. **Active Rules** — Summarize the current CLAUDE.md / rules
+4. **Active Rules** — Summarize the rules in `.weave/rules/`
 
-5. **Skills/Commands** — List all weave commands available
+5. **Skills** — List all weave skills available
 
-6. **Platforms** — Which platforms are configured
+6. **Platforms** — Which platforms are active (from `.weave/platforms.json`)
 
 7. **Evolve History** — Show recent optimizations from `.weave/history/`
 
 ## Format
-Display everything in a clean, readable format. Use a tree structure where appropriate:
+Display everything in a clean, readable format. Use a tree structure:
 
 ```
 Weave Status
@@ -38,7 +38,8 @@ Weave Status
 │   └── reviewer — checks code quality
 ├── Teams (X configured)
 │   └── feature-dev — planner → executor → reviewer
-├── Platforms
-│   └── Claude Code ✓
+├── Platforms (X active)
+│   ├── Claude Code ✓
+│   └── Cursor ✓
 └── Last evolved: [date]
 ```

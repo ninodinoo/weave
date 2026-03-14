@@ -18,8 +18,9 @@ You analyze how a project has evolved since the last setup/optimization and impr
 
 ### 1. Gather context
 - Read `.weave/config.json` — original onboarding data
+- Read `.weave/platforms.json` — which platforms are active
 - Read `.weave/history/` — what was changed before and when
-- Read current CLAUDE.md and all agent/team/skill definitions
+- Read current rules, agents, teams, and skill definitions in `.weave/`
 - Run `git log --oneline -30` to see recent work
 - Check `package.json` and directory structure for changes
 
@@ -50,7 +51,8 @@ For each improvement:
 Present all proposals to the user. DO NOT make changes silently.
 
 ### 4. Apply approved changes
-- Update the relevant files
+- Update the relevant files in `.weave/`
+- Trigger sync to update platform-specific files
 - Create a detailed log entry in `.weave/history/` with:
   - Timestamp
   - What was changed

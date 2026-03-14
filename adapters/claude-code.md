@@ -4,28 +4,29 @@
 ```
 project/
 ├── .claude/
-│   ├── commands/          # Slash commands (Markdown files)
-│   │   └── command-name.md  → accessible as /command-name
-│   ├── agents/            # Agent definitions (Markdown files)
+│   ├── commands/          # Skills (Markdown files)
+│   │   └── skill-name.md  → accessible as /skill-name
+│   ├── agents/            # Subagent definitions (Markdown files)
 │   │   └── agent-name.md  → usable as subagent_type in Agent tool
+│   ├── hooks/             # Lifecycle hooks (JS files)
 │   └── settings.json      # Claude Code settings
 ├── CLAUDE.md              # Project-level rules (root)
 └── src/
     └── CLAUDE.md          # Directory-level rules (optional)
 ```
 
-## Commands
+## Skills
 - Location: `.claude/commands/`
-- Format: Markdown files
-- Naming: `command-name.md` → becomes `/command-name`
+- Format: Markdown files with optional YAML frontmatter
+- Naming: `skill-name.md` → becomes `/skill-name`
 - Namespaced: `weave:onboarding.md` → becomes `/weave:onboarding`
-- Content: Prompt/instructions that get loaded when the command is invoked
+- Content: Prompt/instructions that get loaded when the skill is invoked
 
-## Agents
+## Subagents
 - Location: `.claude/agents/`
-- Format: Markdown files with frontmatter
+- Format: Markdown files with YAML frontmatter (name, role, tools, output)
 - Accessible via the `Agent` tool with `subagent_type` parameter
-- Each agent gets its own fresh context window
+- Each subagent gets its own fresh context window
 
 ## Rules
 - Location: `CLAUDE.md` in project root (or any directory)
@@ -35,21 +36,19 @@ project/
 
 ## Hooks
 - Location: `.claude/hooks/` or configured in `.claude/settings.json`
-- Format: JavaScript files
-- Triggered by events (tool calls, conversation start, etc.)
-- Can run shell commands, modify files, collect telemetry
+- Format: JavaScript files, HTTP endpoints, or LLM prompts
+- Triggered by lifecycle events (tool calls, conversation start, etc.)
 
 ## Supported Features
-- ✓ Slash Commands
-- ✓ Agents / Subagents
+- ✓ Skills (slash commands)
+- ✓ Subagents
 - ✓ Rules (CLAUDE.md)
 - ✓ Hooks
 - ✓ MCP Servers
-- ✓ Skills
 
 ## Translation from Weave Universal Format
-- Weave Agent → `.claude/agents/agent-name.md`
 - Weave Skill → `.claude/commands/weave:skill-name.md`
+- Weave Agent → `.claude/agents/agent-name.md`
 - Weave Rule → Append to `CLAUDE.md`
 - Weave Hook → `.claude/hooks/` + settings.json entry
-- Weave Team → `.weave/teams/` (referenced by commands, no native team support)
+- Weave Team → `.weave/teams/` (referenced by skills, no native team support)
