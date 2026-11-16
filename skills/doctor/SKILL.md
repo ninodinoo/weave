@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Weave doctor
 
-Run the linter:
+Run the linter from the repository root:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs" doctor --json
@@ -18,6 +18,7 @@ How to handle each rule:
 
 | Rule | Fix |
 |---|---|
+| `no-instructions` | There is no `AGENTS.md` or `CLAUDE.md`. Offer to run the onboard skill instead of writing one here. |
 | `dead-path`, `dead-script` | Find what the reference should be now (renamed file, new script name) and correct it. If the thing is gone, delete the line. |
 | `too-long`, `tree-dump` | Remove what the agent can find by reading the repo. Move procedures into skills and area-specific detail into a doc with a pointer line. |
 | `vague` | Replace it with the concrete rule behind it, or delete it. Ask the user if you cannot tell what was meant. |
@@ -27,6 +28,7 @@ How to handle each rule:
 | `skill-drift` | The same skill differs between `.claude/skills/` and `.agents/skills/`. Ask which version is right and copy it over the other. |
 | `no-verification` | Add the real test, lint and typecheck commands, after running them to confirm they work. |
 | `skill-description`, `skill-name`, `skill-frontmatter`, `agent-frontmatter` | Fix the frontmatter. A description says what the thing does and when to use it. |
+| `skill-length` | Move detail out of `SKILL.md` into reference files next to it and link to them. |
 | `secret` | Tell the user at once. Remove it from the file; they need to rotate the credential. |
 | `codex-truncation` | Codex silently cuts project instructions at 32 KiB. Shrink the files until they fit. |
 

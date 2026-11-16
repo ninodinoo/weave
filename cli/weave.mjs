@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Weave CLI. Zero dependencies; everything it does is local to the machine.
+import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { c } from "../lib/util.mjs";
 
@@ -7,8 +8,10 @@ const HELP = `
 ${c.bold("weave")} — the self-tuning setup for Claude Code and Codex
 
   ${c.bold("weave init")} [--claude] [--codex]    install skills + hooks into this project
-  ${c.bold("weave doctor")} [--json] [--ci]       lint AGENTS.md / CLAUDE.md, rules, skills, subagents
-  ${c.bold("weave analyze")} [--json] [--days N]  mine your session transcripts for evidence
+  ${c.bold("weave doctor")} [--json] [--ci] [--strict]
+                                   lint AGENTS.md / CLAUDE.md, rules, skills, subagents
+  ${c.bold("weave analyze")} [--json] [--days N] [--all]
+                                   mine your session transcripts for evidence
   ${c.bold("weave status")}                       what is installed and what is pending
   ${c.bold("weave uninstall")} [--purge]          remove skills, hooks and runtime
 
@@ -20,20 +23,34 @@ ${c.bold("weave")} — the self-tuning setup for Claude Code and Codex
   Options: --dir PATH (project directory, default: current)
 `;
 
+const BOOLEAN_FLAGS = new Set(["json", "ci", "strict", "all", "claude", "codex", "purge", "plugin", "help"]);
+
+/** Boolean flags never swallow the next word; every other option takes exactly one value, whatever it looks like. */
 function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (!a.startsWith("--")) {
+    if (!a.startsWith("--") || a === "--") {
       args._.push(a);
       continue;
     }
     const eq = a.indexOf("=");
-    if (eq > 0) args[a.slice(2, eq)] = a.slice(eq + 1);
-    else if (i + 1 < argv.length && !argv[i + 1].startsWith("--")) args[a.slice(2)] = argv[++i];
-    else args[a.slice(2)] = true;
+    const name = eq > 0 ? a.slice(2, eq) : a.slice(2);
+    if (BOOLEAN_FLAGS.has(name)) args[name] = true;
+    else if (eq > 0) args[name] = a.slice(eq + 1);
+    else if (i + 1 < argv.length) args[name] = argv[++i];
+    else throw new UsageError(`--${name} needs a value.`);
   }
   return args;
+}
+
+class UsageError extends Error {}
+
+function positiveInt(args, name) {
+  if (args[name] === undefined) return undefined;
+  const n = Number(args[name]);
+  if (!Number.isInteger(n) || n <= 0) throw new UsageError(`--${name} needs a whole number greater than 0.`);
+  return n;
 }
 
 const SEV = { error: c.red("error"), warn: c.yellow("warn ") };
@@ -82,13 +99,23 @@ function printReport(r) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0];
-  const projectDir = resolve(typeof args.dir === "string" ? args.dir : process.cwd());
 
   if (command === "hook") {
     const { runHook } = await import("../lib/hook.mjs");
     const platform = args.platform === "codex" || process.env.PLUGIN_ROOT ? "codex" : "claude";
     await runHook(args._[1], platform);
     return;
+  }
+
+  // Without --dir, work on the Weave project the current directory belongs to, the same
+  // way the hooks do. `init` is the exception: it sets up the directory it is run in.
+  let projectDir;
+  if (args.dir !== undefined) {
+    projectDir = resolve(args.dir);
+    if (!existsSync(projectDir) || !statSync(projectDir).isDirectory()) throw new UsageError(`--dir: ${projectDir} is not a directory.`);
+  } else {
+    const { findProject } = await import("../lib/state.mjs");
+    projectDir = (command !== "init" && findProject(process.cwd())) || process.cwd();
   }
 
   if (!command || command === "help" || args.help) {
@@ -131,9 +158,9 @@ async function main() {
   if (command === "analyze") {
     const { buildReport } = await import("../lib/report.mjs");
     const report = buildReport(projectDir, {
-      days: args.days ? Number(args.days) : undefined,
+      days: positiveInt(args, "days"),
       all: Boolean(args.all),
-      minSessions: args.min ? Number(args.min) : undefined,
+      minSessions: positiveInt(args, "min"),
     });
     if (args.json) console.log(JSON.stringify(report, null, 2));
     else printReport(report);
@@ -143,7 +170,7 @@ async function main() {
   if (command === "record") {
     const { appendHistory } = await import("../lib/state.mjs");
     const kinds = ["rule", "scoped-rule", "skill", "hook", "subagent", "prune", "setup"];
-    if (!kinds.includes(args.kind) || typeof args.summary !== "string") {
+    if (!kinds.includes(args.kind) || !args.summary) {
       console.error(`Usage: weave record --kind <${kinds.join("|")}> --target FILE --summary TEXT [--evidence TEXT] [--watch a,b]`);
       process.exitCode = 2;
       return;
@@ -151,10 +178,10 @@ async function main() {
     appendHistory(projectDir, {
       ts: new Date().toISOString(),
       kind: args.kind,
-      target: typeof args.target === "string" ? args.target : null,
+      target: args.target ?? null,
       summary: args.summary,
-      evidence: typeof args.evidence === "string" ? args.evidence : null,
-      watch: typeof args.watch === "string" ? args.watch.split(",").map((w) => w.trim()).filter(Boolean) : [],
+      evidence: args.evidence ?? null,
+      watch: (args.watch ?? "").split(",").map((w) => w.trim()).filter(Boolean),
     });
     console.log("recorded");
     return;
@@ -192,7 +219,7 @@ async function main() {
 
 main().catch((error) => {
   // Hooks must stay silent; everything else should say what went wrong.
-  if (process.argv[2] === "hook") return;
+  if (process.argv.includes("hook")) return;
   console.error(c.red(`weave: ${error.message}`));
-  process.exitCode = 1;
+  process.exitCode = error instanceof UsageError ? 2 : 1;
 });

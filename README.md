@@ -105,12 +105,13 @@ npx weave-ai doctor --strict   # exit 1 on any finding
 
 | Rule | Catches |
 |---|---|
+| `no-instructions` | a repo with no `AGENTS.md` or `CLAUDE.md` at all |
 | `dead-path`, `dead-script` | references to files and package scripts that no longer exist |
 | `too-long`, `codex-truncation` | files past the point where instructions get ignored, or past Codex's silent 32 KiB cut |
 | `tree-dump`, `vague`, `linter-job`, `emphasis` | directory trees, "write clean code", formatting rules your formatter already enforces, walls of IMPORTANT |
 | `two-sources`, `duplicate`, `skill-drift` | Claude Code and Codex reading different instructions or different versions of a skill |
 | `no-verification` | instructions that never say how to test a change |
-| `skill-*`, `agent-frontmatter` | skills and subagents that will never be picked up |
+| `skill-frontmatter`, `skill-description`, `skill-name`, `skill-length`, `agent-frontmatter` | skills and subagents that will never be picked up, or that load too much |
 | `secret` | credentials in files that are loaded into every session |
 
 ## Commands

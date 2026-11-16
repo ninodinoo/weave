@@ -12,6 +12,8 @@ Talk to the user in the language they write in.
 
 ## 1. Gather
 
+Run Weave's commands from the repository root.
+
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs" analyze --json
 node "${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs" doctor --json
@@ -29,7 +31,7 @@ The `analyze` report contains:
 | `hotFiles` | files the agent reads in most sessions |
 | `repeatedPrompts` | requests the user keeps retyping |
 | `pastChanges` | earlier Weave changes and whether the problem came back (`holding`, `recurring`, `too-early`) |
-| `trend` | corrections, interrupts and failed commands per week |
+| `trend` | per week: sessions, prompts, feedback (standing instructions plus corrections), interrupts and failed commands |
 
 The detection is pattern matching, so expect false positives. A quote is evidence only if it is about how to work in this repo.
 

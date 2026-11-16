@@ -12,7 +12,7 @@ Talk to the user in the language they write in. Write the files in English unles
 
 ## 1. Look before you ask
 
-Run these, then read whatever instruction files already exist (`AGENTS.md`, `CLAUDE.md`, `.claude/rules/`):
+Run these from the repository root, then read whatever instruction files already exist (`AGENTS.md`, `CLAUDE.md`, `.claude/rules/`):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs" init --plugin
