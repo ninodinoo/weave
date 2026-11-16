@@ -1,42 +1,39 @@
 {
   "name": "weave-ai",
-  "version": "0.4.0",
-  "description": "Your AI workflow, woven to perfection. A framework that lives inside your AI coding tool, learns how you work, and builds the perfect workflow — automatically.",
+  "version": "1.0.0",
+  "description": "The self-tuning setup for Claude Code and Codex. Learns from your real sessions which rules, skills and hooks your repo needs, and prunes the rest.",
   "type": "module",
   "bin": {
-    "weave": "./dist/install.js"
+    "weave": "cli/weave.mjs",
+    "weave-ai": "cli/weave.mjs"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "test": "node --test",
+    "doctor": "node cli/weave.mjs doctor --strict"
   },
   "keywords": [
     "ai",
-    "workflow",
     "claude-code",
-    "openclaw",
-    "cursor",
     "codex",
-    "agents",
+    "agents-md",
+    "claude-md",
+    "skills",
+    "hooks",
+    "context-engineering",
     "developer-tools"
   ],
   "author": "nino",
   "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^25.5.0",
-    "typescript": "^5.8.0"
-  },
-  "dependencies": {
-    "picocolors": "^1.1.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ninodinoo/weave.git"
   },
   "files": [
-    "dist",
-    "commands",
-    "master-instructions",
+    "cli",
+    "lib",
+    "skills",
     "hooks",
-    "agents",
-    "adapters",
-    "core"
+    ".claude-plugin"
   ],
   "engines": {
     "node": ">=18.0.0"

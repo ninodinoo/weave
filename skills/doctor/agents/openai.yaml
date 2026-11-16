@@ -1,0 +1,5 @@
+interface:
+  display_name: "Weave Doctor"
+  short_description: "Lint and fix the agent setup"
+policy:
+  allow_implicit_invocation: false

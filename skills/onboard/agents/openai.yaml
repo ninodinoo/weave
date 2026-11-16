@@ -1,0 +1,5 @@
+interface:
+  display_name: "Weave Onboard"
+  short_description: "Set up this repo for AI coding agents"
+policy:
+  allow_implicit_invocation: false

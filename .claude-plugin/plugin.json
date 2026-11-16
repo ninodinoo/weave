@@ -1,0 +1,20 @@
+{
+  "name": "weave",
+  "displayName": "Weave",
+  "description": "The self-tuning setup for Claude Code and Codex. Learns from your real sessions which rules, skills and hooks your repo needs, and prunes the rest.",
+  "author": {
+    "name": "nino",
+    "url": "https://github.com/ninodinoo"
+  },
+  "homepage": "https://github.com/ninodinoo/weave",
+  "repository": "https://github.com/ninodinoo/weave",
+  "license": "MIT",
+  "keywords": [
+    "agents-md",
+    "claude-md",
+    "skills",
+    "hooks",
+    "codex",
+    "context-engineering"
+  ]
+}

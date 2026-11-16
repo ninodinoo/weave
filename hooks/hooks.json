@@ -1,0 +1,28 @@
+{
+  "description": "Weave: captures standing instructions and counts sessions. Local only, no model calls.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs\" hook prompt",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/cli/weave.mjs\" hook session-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

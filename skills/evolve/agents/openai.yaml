@@ -1,0 +1,5 @@
+interface:
+  display_name: "Weave Evolve"
+  short_description: "Tune the agent setup from real usage"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,14 @@
+{
+  "name": "weave",
+  "owner": {
+    "name": "nino"
+  },
+  "description": "Weave: the self-tuning setup for Claude Code and Codex",
+  "plugins": [
+    {
+      "name": "weave",
+      "source": "./",
+      "description": "Learns from your real sessions which rules, skills and hooks your repo needs, and prunes the rest."
+    }
+  ]
+}
