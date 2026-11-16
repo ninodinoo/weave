@@ -356,7 +356,7 @@ test("commands run from a subdirectory act on the project, as the hooks do", () 
 
 test("the example hook in the evolve reference blocks force pushes and nothing else", () => {
   const doc = readFileSync(join(ROOT, "skills/evolve/references/hooks.md"), "utf8");
-  const code = /```js\n(\/\/ \.weave\/hooks\/no-force-push\.mjs[\s\S]*?)```/.exec(doc)[1];
+  const code = /```js\r?\n(\/\/ \.weave\/hooks\/no-force-push\.mjs[\s\S]*?)```/.exec(doc)[1];
   const file = write(tempDir(), "no-force-push.mjs", code);
   const run = (command) => spawnSync("node", [file], { input: JSON.stringify({ tool_input: { command } }), encoding: "utf8" }).status;
   for (const c of ["git push --force", "git push -fu origin main", "git push origin +main", "git -C . push --force", "git push --force-with-lease"]) assert.equal(run(c), 2, c);
