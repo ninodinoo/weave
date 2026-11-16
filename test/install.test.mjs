@@ -77,13 +77,15 @@ test("init for one tool leaves the other alone", () => {
 
 test("init cleans up what Weave 0.x left behind", () => {
   const dir = tempDir();
-  write(dir, ".claude/commands/weave:onboarding.md", "old");
+  // 0.x named its commands "weave:<name>.md", which Windows cannot even create.
+  const colonOk = process.platform !== "win32";
+  if (colonOk) write(dir, ".claude/commands/weave:onboarding.md", "old");
   write(dir, ".claude/commands/weave-instructions/agents.md", "old");
   write(dir, ".claude/commands/mine.md", "keep");
   write(dir, ".claude/hooks/evolve-hook.js", "old");
   write(dir, ".claude/agents/weave-sync-agent.md", "old");
   const { legacy } = init(dir, both);
-  assert.equal(legacy.length, 4);
+  assert.equal(legacy.length, colonOk ? 4 : 3);
   assert.ok(existsSync(join(dir, ".claude/commands/mine.md")));
   assert.ok(!existsSync(join(dir, ".claude/commands/weave:onboarding.md")));
 });
